@@ -12,7 +12,12 @@ import os
 
 import pandas as pd
 
-batch_size=64
+from tqdm import tqdm_notebook as tqdm
+from tqdm import trange
+
+learning_rate = 1e-5
+max_epoch = 50
+batch_size = 16
 
 # transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 transform=transforms.ToTensor()
@@ -71,6 +76,87 @@ test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_siz
 print(type(train_dataset))
 print(type(test_dataset))
 
+
+
+class CNN_Simple(nn.Module):
+    def __init__(self, batch_size,  in_channels, out_channels, kernel_heights, stride, padding):
+        super(CNN_Simple, self).__init__()
+        self.batch_size = batch_size
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_heights = kernel_heights
+        self.stride = stride
+        self.padding = padding
+
+        self.conv1 = nn.Conv2d( in_channels, out_channels, (kernel_heights[0], kernel_heights[0]), self.stride, padding = self.padding)
+        # self.conv2 = nn.Conv2d( in_channels, out_channels, (kernel_heights[1], kernel_heights[1]), stride, padding=0)
+
+        self.l1 = nn.Linear(len(kernel_heights)*out_channels, int( len(kernel_heights)*out_channels/2) )
+
+    def conv_block(self, input, conv_layer):
+        conv_out = conv_layer(input)
+        #print('\nconv_out.size()= ', conv_out.size(), end=' ')
+        # conv_out.size() = (batch_size, out_channels, dim, 1) 
+
+        activation = F.relu(conv_out.squeeze(3))
+        #print(' activation.size()= ', activation.size(), end=' ')
+        # activation.size() = (batch_size, out_channels, dim)
+
+        #print(' activation.size()[2]= ', activation.size()[2], end='')
+        # activation.size()[2]=
+
+        max_out=F.max_pool1d(activation, activation.size()[2])
+        #print(' 1 max_out.size()= ', max_out.size(), end=' ')
+        # maxpool_out.size() = (batch_size, out_channels, 1)
+
+        max_out = max_out.squeeze(2)
+        #print(' 2 max_out.size()= ', max_out.size(), '\n')
+        # maxpool_out.size() = (batch_size, out_channels)
+
+    def forward(self, x):
+
+        print(x.size())
+
+        out = self.conv_block(x, self.conv1)
+
+        print(out.size())
+
+        return x
+
+
+#  batch_size,  in_channels, out_channels, kernel_heights, stride, padding, 
+model = CNN_Simple(batch_size, 3, 3, [3], 1, 0)
+
+
+
+
+
+opt = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+criteria = torch.nn.BCELoss()
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+model.to(device)
+
+def _run_epoch(epoch, mode):
+    model.train(True)
+    if mode=='train':
+        description = 'Train'
+
+    trange = tqdm(enumerate( train_dataloader ), total=len(train_dataloader), desc=description )
+    loss = 0
+
+    for i, (x, y) in trange:
+        o_labels, batch_loss = _run_iter(x,y)
+        if model =='train':
+            opt.zero_grad()
+            batch_loss.backward()
+            opt.step()
+        
+        loss += batch_loss.item()
+
+
+'''
 for batch_idx, data in enumerate(train_dataloader):
     print (data['labels'])
     # print('\n')
@@ -79,6 +165,7 @@ for batch_idx, data in enumerate(train_dataloader):
 
 for batch_idx, data in enumerate(test_dataloader):
 	print (data['image'].size())
+'''
 
 '''
 import matplotlib.pyplot as plt
