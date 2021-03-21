@@ -95,7 +95,7 @@ class CNN_Simple(nn.Module):
 
     def conv_block(self, input, conv_layer):
         conv_out = conv_layer(input)
-        print('\nconv_out.size()= ', conv_out.size(), '\n')
+        print('conv_out.size()= ', conv_out.size(), '\n')
         # conv_out.size() = (batch_size, out_channels, dim, 1) 
 
         activation = F.relu(conv_out.squeeze(3))
@@ -122,16 +122,13 @@ class CNN_Simple(nn.Module):
 
         out = self.conv_block(x, self.conv1)
 
-        print('in forward: ', out.size())
+        print('in forward: ', out.size(), '\n')
 
-        return x
+        return out
 
 
 #  batch_size,  in_channels, out_channels, kernel_heights, stride, padding, 
-model = CNN_Simple(batch_size, 3, 3, [3], 1, 0)
-
-
-
+model = CNN_Simple(batch_size, 3, 1, [3], 1, 0)
 
 
 opt = torch.optim.AdamW(model.parameters(), lr=learning_rate)
@@ -150,8 +147,8 @@ def _run_epoch(epoch, mode):
     loss = 0
 
     for i, (x, y) in trange:
-        print('type(x) ', type(x), ' x= ', x, '\n')
-        print('type(y) ', type(y), ' y= ', y, '\n')
+        print('_run_epoch type(x) ', type(x), ' x= ', x, '\n')
+        print('_run_epoch type(y) ', type(y), ' y= ', y, '\n')
         o_labels, batch_loss = _run_iter(x,y)
         if model =='train':
             opt.zero_grad()
@@ -165,7 +162,7 @@ def _run_iter(x,y):
     input_images = x.to(device)
     labels = y.to(device)
     o_labels  = model(input_images)
-    print('size o_labels: ', o_labels.size(), ' size labels: ', labels.size() , '\n')
+    print('_run_iter size o_labels: ', o_labels.size(), '_run_iter size labels: ', labels.size() , '\n')
     o_labels = criteria(o_labels, labels)
 
     return o_labels, l_loss
