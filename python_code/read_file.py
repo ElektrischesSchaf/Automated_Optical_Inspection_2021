@@ -42,8 +42,8 @@ class MyTrainDataset(Dataset):
         labels = self.label_frame.iloc[idx]
         image = Image.open(img_name)
         image = self.transform(image)
-        sample={'image':image, 'labels':labels}
-        return sample
+        sample = {'image':image, 'labels':labels}
+        return image, labels
 
     def __len__(self):
         return len(self.name_frame)
@@ -147,6 +147,8 @@ def _run_epoch(epoch, mode):
     loss = 0
 
     for i, (x, y) in trange:
+        print('type(x) ', type(x), ' x= ', x, '\n')
+        print('type(y) ', type(y), ' y= ', y, '\n')
         o_labels, batch_loss = _run_iter(x,y)
         if model =='train':
             opt.zero_grad()
@@ -154,6 +156,20 @@ def _run_epoch(epoch, mode):
             opt.step()
         
         loss += batch_loss.item()
+
+
+def _run_iter(x,y):
+    input_images = x.to(device)
+    labels = y.to(device)
+    l_loss  = model(input_images)
+    o_labels = criteria(o_labels, labels)
+
+    return o_labels, l_loss
+
+
+for epoch in range(max_epoch):
+    print('Epoch: {}'.format(epoch))
+    _run_epoch(epoch, 'train')
 
 
 '''
