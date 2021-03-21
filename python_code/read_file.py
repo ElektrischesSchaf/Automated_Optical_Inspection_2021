@@ -93,6 +93,8 @@ class CNN_Simple(nn.Module):
 
         self.l1 = nn.Linear(len(kernel_heights)*out_channels, int( len(kernel_heights)*out_channels/2) )
 
+        self.linear = nn.Linear( 1*254*254, 1 )
+
     def conv_block(self, input, conv_layer):
         conv_out = conv_layer(input)
         print('conv_out.size()= ', conv_out.size(), '\n')
@@ -122,6 +124,10 @@ class CNN_Simple(nn.Module):
 
         out = self.conv_block(x, self.conv1)
 
+        out = self.linear(out)
+
+        out = out.squeeze(1)
+
         print('in forward: ', out.size(), '\n')
 
         return out
@@ -132,7 +138,7 @@ model = CNN_Simple(batch_size, 3, 1, [3], 1, 0)
 
 
 opt = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-criteria = torch.nn.BCELoss()
+criteria = torch.nn.MSELoss() # BCELoss
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -160,10 +166,11 @@ def _run_epoch(epoch, mode):
 
 def _run_iter(x,y):
     input_images = x.to(device)
-    labels = y.to(device)
-    o_labels  = model(input_images)
+    labels = y.to(device).to(dtype=torch.float32)
+    o_labels = model(input_images).to(device)
+    o_labels = o_labels.to(dtype=torch.float32)
     print('_run_iter size o_labels: ', o_labels.size(), '_run_iter size labels: ', labels.size() , '\n')
-    o_labels = criteria(o_labels, labels)
+    l_loss = criteria(o_labels, labels)
 
     return o_labels, l_loss
 
