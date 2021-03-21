@@ -95,31 +95,34 @@ class CNN_Simple(nn.Module):
 
     def conv_block(self, input, conv_layer):
         conv_out = conv_layer(input)
-        #print('\nconv_out.size()= ', conv_out.size(), end=' ')
+        print('\nconv_out.size()= ', conv_out.size(), '\n')
         # conv_out.size() = (batch_size, out_channels, dim, 1) 
 
         activation = F.relu(conv_out.squeeze(3))
+
+        activation = activation.view(activation.size(0), -1)
         #print(' activation.size()= ', activation.size(), end=' ')
         # activation.size() = (batch_size, out_channels, dim)
 
         #print(' activation.size()[2]= ', activation.size()[2], end='')
         # activation.size()[2]=
 
-        max_out=F.max_pool1d(activation, activation.size()[2])
+        # max_out=F.max_pool1d(activation, activation.size()[2])
         #print(' 1 max_out.size()= ', max_out.size(), end=' ')
         # maxpool_out.size() = (batch_size, out_channels, 1)
 
-        max_out = max_out.squeeze(2)
+        # max_out = max_out.squeeze(2)
         #print(' 2 max_out.size()= ', max_out.size(), '\n')
         # maxpool_out.size() = (batch_size, out_channels)
 
+        return activation
     def forward(self, x):
 
         print(x.size())
 
         out = self.conv_block(x, self.conv1)
 
-        print(out.size())
+        print('in forward: ', out.size())
 
         return x
 
@@ -161,7 +164,8 @@ def _run_epoch(epoch, mode):
 def _run_iter(x,y):
     input_images = x.to(device)
     labels = y.to(device)
-    l_loss  = model(input_images)
+    o_labels  = model(input_images)
+    print('size o_labels: ', o_labels.size(), ' size labels: ', labels.size() , '\n')
     o_labels = criteria(o_labels, labels)
 
     return o_labels, l_loss
