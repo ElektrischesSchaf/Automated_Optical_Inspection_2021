@@ -16,7 +16,7 @@ from tqdm import tqdm_notebook as tqdm
 from tqdm import trange
 
 learning_rate = 1e-5
-max_epoch = 50
+max_epoch = 3
 batch_size = 16
 
 # transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
@@ -40,10 +40,25 @@ class MyTrainDataset(Dataset):
     def __getitem__(self, idx):
         img_name = os.path.join(self.root_dir, str(self.name_frame.iloc[idx] ))
         labels = self.label_frame.iloc[idx]
+        if labels==0:
+            out_labels=torch.tensor([0,0,0,0,0,0])
+        if labels==1:
+            out_labels=torch.tensor([1,0,0,0,0,0])
+        if labels==2:
+            out_labels=torch.tensor([0,1,0,0,0,0])
+        if labels==3:
+            out_labels=torch.tensor([0,0,1,0,0,0])
+        if labels==4:
+            out_labels=torch.tensor([0,0,0,1,0,0])
+        if labels==5:
+            out_labels=torch.tensor([0,0,0,0,1,0])
+        if labels==6:
+            out_labels=torch.tensor([0,0,0,0,0,1])
+
         image = Image.open(img_name)
         image = self.transform(image)
-        sample = {'image':image, 'labels':labels}
-        return image, labels
+        # sample = {'image':image, 'labels':labels}
+        return image, out_labels
 
     def __len__(self):
         return len(self.name_frame)
@@ -93,34 +108,21 @@ class CNN_Simple(nn.Module):
 
         self.l1 = nn.Linear(len(kernel_heights)*out_channels, int( len(kernel_heights)*out_channels/2) )
 
-        self.linear = nn.Linear( 1*254*254, 1 )
+        self.linear = nn.Linear( 1*254*254, 6 )
 
     def conv_block(self, input, conv_layer):
         conv_out = conv_layer(input)
-        print('conv_out.size()= ', conv_out.size(), '\n')
+        # print('conv_out.size()= ', conv_out.size(), '\n')
         # conv_out.size() = (batch_size, out_channels, dim, 1) 
 
         activation = F.relu(conv_out.squeeze(3))
 
         activation = activation.view(activation.size(0), -1)
-        #print(' activation.size()= ', activation.size(), end=' ')
-        # activation.size() = (batch_size, out_channels, dim)
-
-        #print(' activation.size()[2]= ', activation.size()[2], end='')
-        # activation.size()[2]=
-
-        # max_out=F.max_pool1d(activation, activation.size()[2])
-        #print(' 1 max_out.size()= ', max_out.size(), end=' ')
-        # maxpool_out.size() = (batch_size, out_channels, 1)
-
-        # max_out = max_out.squeeze(2)
-        #print(' 2 max_out.size()= ', max_out.size(), '\n')
-        # maxpool_out.size() = (batch_size, out_channels)
 
         return activation
     def forward(self, x):
 
-        print(x.size())
+        # print(x.size())
 
         out = self.conv_block(x, self.conv1)
 
@@ -128,7 +130,7 @@ class CNN_Simple(nn.Module):
 
         out = out.squeeze(1)
 
-        print('in forward: ', out.size(), '\n')
+        # print('in forward: ', out.size(), '\n')
 
         return out
 
@@ -143,18 +145,19 @@ criteria = torch.nn.BCEWithLogitsLoss() # BCELoss
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 model.to(device)
+history = {'train':[],'valid':[]}
+
 
 def _run_epoch(epoch, mode):
     model.train(True)
     if mode=='train':
-        description = 'Train'
-
+        description = 'train'
     trange = tqdm(enumerate( train_dataloader ), total=len(train_dataloader), desc=description )
     loss = 0
 
     for i, (x, y) in trange:
-        print('_run_epoch type(x) ', type(x), ' x= ', x, '\n')
-        print('_run_epoch type(y) ', type(y), ' y= ', y, '\n')
+        # print('_run_epoch type(x) ', type(x), ' x= ', x, '\n')
+        # print('_run_epoch type(y。) ', type(y), ' y= ', y, '\n')
         o_labels, batch_loss = _run_iter(x,y)
         if model =='train':
             opt.zero_grad()
@@ -163,16 +166,34 @@ def _run_epoch(epoch, mode):
         
         loss += batch_loss.item()
 
+        trange.set_postfix(loss=loss/(i+1))
+
+    if mode=='train':
+        history['train'].append({'loss':loss/len(trange)})
+    
+    else:
+        history['valid'].append({'loss':loss /len(trange)})
+    
+    trange.close()
+
 
 def _run_iter(x,y):
     input_images = x.to(device)
     labels = y.to(device).to(dtype=torch.float32)
     o_labels = model(input_images).to(device)
     o_labels = o_labels.to(dtype=torch.float32)
-    print('_run_iter size o_labels: ', o_labels.size(), '_run_iter size labels: ', labels.size() , '\n')
+    # print('_run_iter size o_labels: ', o_labels.size(), '_run_iter size labels: ', labels.size() , '\n')
     l_loss = criteria(o_labels, labels)
 
     return o_labels, l_loss
+
+
+def save(epoch):
+    if not os.path.exists(os.path.join(CWD,'model_CNN')):
+        os.makedirs(os.path.join(CWD,'model_CNN'))
+    torch.save(model.state_dict(), os.path.join( CWD,'model_CNN/model.pkl.'+str(epoch) ))
+    with open( os.path.join( CWD,'model_CNN/history.json'), 'w') as f:
+        json.dump(history, f, indent=4)
 
 
 for epoch in range(max_epoch):
