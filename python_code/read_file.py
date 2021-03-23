@@ -138,7 +138,7 @@ model = CNN_Simple(batch_size, 3, 1, [3], 1, 0)
 
 
 opt = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-criteria = torch.nn.MSELoss() # BCELoss
+criteria = torch.nn.BCEWithLogitsLoss() # BCELoss
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
