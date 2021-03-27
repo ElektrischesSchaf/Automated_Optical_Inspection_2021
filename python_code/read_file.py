@@ -148,12 +148,36 @@ model.to(device)
 history = {'train':[],'valid':[]}
 
 
+class mean_recall():
+    def __init__(self):
+        self.n_predictions=0
+        self.n_classes=0
+        self.n_correct_predictions=0
+        self.n_recall=0
+        self.n_corrects=0
+    def rest(self):
+        self.n_predictions=0
+        self.n_classes=0
+        self.n_correct_predictions=0
+    def update(self, predicts, ground_truth):
+        self.n_recall += torch.sum(ground_truth).data.item()
+        self.n_corrects += torch.sum(ground_truth.type(torch.bool)*predicts).data.item()
+    def get_score(self):
+        recall = self.n_corrects / self.n_recall
+        return recall
+    def print_score(self):
+        score = self.get_score()
+        return '{:.5f}'.format(score)
+
+
 def _run_epoch(epoch, mode):
     model.train(True)
     if mode=='train':
         description = 'train'
     trange = tqdm(enumerate( train_dataloader ), total=len(train_dataloader), desc=description )
+
     loss = 0
+    MeanRecallScore = mean_recall()
 
     for i, (x, y) in trange:
         # print('_run_epoch type(x) ', type(x), ' x= ', x, '\n')
@@ -165,8 +189,9 @@ def _run_epoch(epoch, mode):
             opt.step()
         
         loss += batch_loss.item()
+        MeanRecallScore.update( o_labels.cpu() ,y )
 
-        trange.set_postfix(loss=loss/(i+1))
+        trange.set_postfix(loss=loss/(i+1), score=MeanRecallScore.print_score() )
 
     if mode=='train':
         history['train'].append({'loss':loss/len(trange)})
