@@ -8,8 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch
 from PIL import Image
-
-
+import numpy as np
 import pandas as pd
 
 from tqdm import tqdm_notebook as tqdm
@@ -24,7 +23,8 @@ CWD = os.getcwd()
 
 learning_rate = 1e-5
 max_epoch = 3
-batch_size = 16
+batch_size = 64
+batch_size_test = 64
 
 # transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 transform=transforms.ToTensor()
@@ -82,8 +82,8 @@ class MyTestDataset(Dataset):
         img_name = os.path.join(self.root_dir, str(self.name_frame.iloc[idx] ))
         image = Image.open(img_name)
         image = self.transform(image)
-        sample={'image':image}
-        return sample
+
+        return image
 
     def __len__(self):
         return len(self.name_frame)
@@ -93,7 +93,7 @@ train_dataset = MyTrainDataset( text_file= './dataset/train.csv' , root_dir='./d
 train_dataloader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=False)
 
 test_dataset = MyTestDataset( text_file= './dataset/test.csv' , root_dir='./dataset/test_images/test_images/')
-test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size_test, shuffle=False)
 
 print(type(train_dataset))
 print(type(test_dataset))
@@ -155,7 +155,7 @@ model.to(device)
 history = {'train':[],'valid':[]}
 
 
-class mean_recall():
+class mean_recall(): # TODO fix
     def __init__(self):
         self.n_predictions=0
         self.n_classes=0
@@ -204,7 +204,7 @@ def _run_epoch(epoch, mode):
         history['train'].append({'mean_recall':MeanRecallScore.get_score(), 'loss':loss/len(trange)})
     
     else:
-        history['valid'].append({'loss':loss /len(trange)})
+        history['valid'].append({'mean_recall':MeanRecallScore.get_score(), 'loss':loss/len(trange)})
     
     trange.close()
 
@@ -234,7 +234,42 @@ for epoch in range(max_epoch):
     save(epoch)
 
 
+train_loss = [l['loss'] for l in history['train']]
+# valid_loss = [l['loss'] for l in history['valid']]
+train_mean_recall = [l['mean_recall'] for l in history['train']]
+# valid_mean_recall = [l['mean_recall'] for l in history['valid']]
 
+
+
+
+best_model = max_epoch -1 # TODO fix
+model.load_state_dict(state_dict=torch.load(os.path.join(CWD,'model_CNN/model.pkl.{}'.format(best_model))))
+model.train(False)
+model.to(device)
+model.eval()
+
+# double ckeck the best_model_score
+# _run_epoch(1, 'valid')
+
+
+trange = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc='Predict')
+prediction = [[]]
+
+with torch.no_grad():
+    for i, x in trange:
+        o_labels = model(x.to(device))
+        # print('In testing: ', o_labels.size(), ' ')
+        for idx, o_label in enumerate(o_labels):
+            # print('In testing: ' ,o_label.size(), '\n')
+            prediction.append( o_label.to('cpu') )
+            prediction.append( [] )
+
+print('yee: ', len(prediction))
+
+# prediction = torch.cat(prediction).detach().numpy().astype(int)
+prediction=np.array(prediction)
+print('Prediction shape: ', prediction.shape)
+print(prediction)
 
 
 '''
