@@ -25,6 +25,7 @@ learning_rate = 1e-5
 max_epoch = 3
 batch_size = 64
 batch_size_test = 64
+threshold = 0.5
 
 # transform = transforms.Compose([transforms.ToTensor(),transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 transform=transforms.ToTensor()
@@ -48,19 +49,19 @@ class MyTrainDataset(Dataset):
         img_name = os.path.join(self.root_dir, str(self.name_frame.iloc[idx] ))
         labels = self.label_frame.iloc[idx]
         if labels==0:
-            out_labels=torch.tensor([0,0,0,0,0,0])
+            out_labels=torch.tensor([1,0,0,0,0,0,0])
         if labels==1:
-            out_labels=torch.tensor([1,0,0,0,0,0])
+            out_labels=torch.tensor([0,1,0,0,0,0,0])
         if labels==2:
-            out_labels=torch.tensor([0,1,0,0,0,0])
+            out_labels=torch.tensor([0,0,1,0,0,0,0])
         if labels==3:
-            out_labels=torch.tensor([0,0,1,0,0,0])
+            out_labels=torch.tensor([0,0,0,1,0,0,0])
         if labels==4:
-            out_labels=torch.tensor([0,0,0,1,0,0])
+            out_labels=torch.tensor([0,0,0,0,1,0,0])
         if labels==5:
-            out_labels=torch.tensor([0,0,0,0,1,0])
+            out_labels=torch.tensor([0,0,0,0,0,1,0])
         if labels==6:
-            out_labels=torch.tensor([0,0,0,0,0,1])
+            out_labels=torch.tensor([0,0,0,0,0,0,1])
 
         image = Image.open(img_name)
         image = self.transform(image)
@@ -115,7 +116,7 @@ class CNN_Simple(nn.Module):
 
         self.l1 = nn.Linear(len(kernel_heights)*out_channels, int( len(kernel_heights)*out_channels/2) )
 
-        self.linear = nn.Linear( 1*254*254, 6 )
+        self.linear = nn.Linear( 1*254*254, 7 )
 
     def conv_block(self, input, conv_layer):
         conv_out = conv_layer(input)
@@ -136,6 +137,8 @@ class CNN_Simple(nn.Module):
         out = self.linear(out)
 
         out = out.squeeze(1)
+
+        out= torch.softmax(out, dim=1)
 
         # print('in forward: ', out.size(), '\n')
 
@@ -253,22 +256,30 @@ model.eval()
 
 
 trange = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc='Predict')
-prediction = [[]]
+prediction = torch.empty((0, 7), dtype=bool)
 
 with torch.no_grad():
     for i, x in trange:
         o_labels = model(x.to(device))
         # print('In testing: ', o_labels.size(), ' ')
         for idx, o_label in enumerate(o_labels):
-            # print('In testing: ' ,o_label.size(), '\n')
-            prediction.append( o_label.to('cpu') )
-            prediction.append( [] )
+            o_label = o_label.to('cpu')
+            o_label = o_label > threshold
+            o_label = o_label.unsqueeze(0)
 
-print('yee: ', len(prediction))
+            # print('In testing: ' ,o_label.size(), '\n')
+            # print('In testing: ' ,prediction.size(), '\n')
+            
+            prediction = torch.cat((prediction, o_label), 0)
+
+
+print('yee: ', prediction.size() )
 
 # prediction = torch.cat(prediction).detach().numpy().astype(int)
-prediction=np.array(prediction)
+prediction = np.array(prediction)
 print('Prediction shape: ', prediction.shape)
+
+prediction = prediction.astype(int)
 print(prediction)
 
 
