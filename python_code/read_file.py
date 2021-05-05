@@ -157,24 +157,74 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model.to(device)
 history = {'train':[],'valid':[]}
 
-
-class mean_recall(): # TODO fix
+# sigma((number of correct predictions of class)/(number of total images of class)) / (Number of classes)
+class mean_recall(): # TODO fix 
     def __init__(self):
-        self.n_predictions=0
-        self.n_classes=0
+        self.n_predictions_class_0 = 0
+        self.n_predictions_class_1 = 0
+        self.n_predictions_class_2 = 0
+        self.n_predictions_class_3 = 0
+        self.n_predictions_class_4 = 0
+        self.n_predictions_class_5 = 0
+        self.n_predictions_class_6 = 0
+
+        self.n_classes_0 = 0
+        self.n_classes_1 = 0
+        self.n_classes_2 = 0
+        self.n_classes_3 = 0
+        self.n_classes_4 = 0
+        self.n_classes_5 = 0
+        self.n_classes_6 = 0
+
         self.n_correct_predictions=0
         self.n_recall=0
         self.n_corrects=0
+
     def rest(self):
-        self.n_predictions=0
-        self.n_classes=0
-        self.n_correct_predictions=0
+        self.n_predictions_class_0 = 0
+        self.n_predictions_class_1 = 0
+        self.n_predictions_class_2 = 0
+        self.n_predictions_class_3 = 0
+        self.n_predictions_class_4 = 0
+        self.n_predictions_class_5 = 0
+        self.n_predictions_class_6 = 0
+
+        self.n_classes_0 = 0
+        self.n_classes_1 = 0
+        self.n_classes_2 = 0
+        self.n_classes_3 = 0
+        self.n_classes_4 = 0
+        self.n_classes_5 = 0
+        self.n_classes_6 = 0
+
     def update(self, predicts, ground_truth):
-        self.n_recall += torch.sum(ground_truth).data.item()
-        self.n_corrects += torch.sum(ground_truth.type(torch.bool)*predicts).data.item()
+        self.n_recall_class_0 += torch.sum(ground_truth).data.item()
+        self.n_recall_class_1 += torch.sum(ground_truth).data.item()
+        self.n_recall_class_2 += torch.sum(ground_truth).data.item()
+        self.n_recall_class_3 += torch.sum(ground_truth).data.item()
+        self.n_recall_class_4 += torch.sum(ground_truth).data.item()
+        self.n_recall_class_5 += torch.sum(ground_truth).data.item()
+        self.n_recall_class_6 += torch.sum(ground_truth).data.item()
+        
+        self.n_corrects_class_0 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        self.n_corrects_class_1 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        self.n_corrects_class_2 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        self.n_corrects_class_3 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        self.n_corrects_class_4 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        self.n_corrects_class_5 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        self.n_corrects_class_6 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+
     def get_score(self):
-        recall = self.n_corrects / self.n_recall
-        return recall
+        recall_class_0 = self.n_corrects_class_0 / self.n_recall_class_0
+        recall_class_1 = self.n_corrects_class_1 / self.n_recall_class_1
+        recall_class_2 = self.n_corrects_class_2 / self.n_recall_class_2
+        recall_class_3 = self.n_corrects_class_3 / self.n_recall_class_3
+        recall_class_4 = self.n_corrects_class_4 / self.n_recall_class_4
+        recall_class_5 = self.n_corrects_class_5 / self.n_recall_class_5
+        recall_class_6 = self.n_corrects_class_6 / self.n_recall_class_6
+
+        return (recall_class_0+recall_class_1+recall_class_2+recall_class_3+recall_class_4+recall_class_5+recall_class_6)/7
+
     def print_score(self):
         score = self.get_score()
         return '{:.5f}'.format(score)
