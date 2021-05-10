@@ -198,21 +198,38 @@ class mean_recall(): # TODO fix
         self.n_classes_6 = 0
 
     def update(self, predicts, ground_truth):
-        self.n_recall_class_0 += torch.sum(ground_truth).data.item()
-        self.n_recall_class_1 += torch.sum(ground_truth).data.item()
-        self.n_recall_class_2 += torch.sum(ground_truth).data.item()
-        self.n_recall_class_3 += torch.sum(ground_truth).data.item()
-        self.n_recall_class_4 += torch.sum(ground_truth).data.item()
-        self.n_recall_class_5 += torch.sum(ground_truth).data.item()
-        self.n_recall_class_6 += torch.sum(ground_truth).data.item()
+
+        for i in ground_truth.size[0]:
+            if ground_truth[i].data.item()==[1,0,0,0,0,0,0]:
+                self.n_recall_class_0 += 1
+            if ground_truth[i].data.item()==[0,1,0,0,0,0,0]:
+                self.n_recall_class_1 += 1
+            if ground_truth[i].data.item()==[0,0,1,0,0,0,0]:                
+                self.n_recall_class_2 += 1
+            if ground_truth[i].data.item()==[0,0,0,1,0,0,0]:
+                self.n_recall_class_3 += 1
+            if ground_truth[i].data.item()==[0,0,0,0,1,0,0]:                
+                self.n_recall_class_4 += 1
+            if ground_truth[i].data.item()==[0,0,0,0,0,1,0]:
+                self.n_recall_class_5 += 1
+            if ground_truth[i].data.item()==[0,0,0,0,0,0,1]:
+                self.n_recall_class_6 += 1
         
-        self.n_corrects_class_0 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
-        self.n_corrects_class_1 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
-        self.n_corrects_class_2 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
-        self.n_corrects_class_3 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
-        self.n_corrects_class_4 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
-        self.n_corrects_class_5 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
-        self.n_corrects_class_6 += torch.sum(groundTruth.type(torch.bool) * predicts).data.item()
+        for i in predictions.size[0]:
+            if ground_truth[i].data.item()==[1,0,0,0,0,0,0]:
+                self.n_corrects_class_0 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            if ground_truth[i].data.item()==[0,1,0,0,0,0,0]:
+                self.n_corrects_class_1 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            if ground_truth[i].data.item()==[0,0,1,0,0,0,0]:
+                self.n_corrects_class_2 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            if ground_truth[i].data.item()==[0,0,0,1,0,0,0]:
+                self.n_corrects_class_3 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            if ground_truth[i].data.item()==[0,0,0,0,1,0,0]:
+                self.n_corrects_class_4 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            if ground_truth[i].data.item()==[0,0,0,0,0,1,0]:
+                self.n_corrects_class_5 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            if ground_truth[i].data.item()==[0,0,0,0,0,0,1]:
+                self.n_corrects_class_6 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
 
     def get_score(self):
         recall_class_0 = self.n_corrects_class_0 / self.n_recall_class_0
