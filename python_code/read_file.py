@@ -160,27 +160,27 @@ history = {'train':[],'valid':[]}
 # sigma((number of correct predictions of class)/(number of total images of class)) / (Number of classes)
 class mean_recall(): # TODO fix 
     def __init__(self):
-        self.n_predictions_class_0 = 0
-        self.n_predictions_class_1 = 0
-        self.n_predictions_class_2 = 0
-        self.n_predictions_class_3 = 0
-        self.n_predictions_class_4 = 0
-        self.n_predictions_class_5 = 0
-        self.n_predictions_class_6 = 0
+        self.n_corrects_class_0 = 0
+        self.n_corrects_class_1 = 0
+        self.n_corrects_class_2 = 0
+        self.n_corrects_class_3 = 0
+        self.n_corrects_class_4 = 0
+        self.n_corrects_class_5 = 0
+        self.n_corrects_class_6 = 0
 
-        self.n_classes_0 = 0
-        self.n_classes_1 = 0
-        self.n_classes_2 = 0
-        self.n_classes_3 = 0
-        self.n_classes_4 = 0
-        self.n_classes_5 = 0
-        self.n_classes_6 = 0
+        self.n_recall_class_0 = 0
+        self.n_recall_class_1 = 0
+        self.n_recall_class_2 = 0
+        self.n_recall_class_3 = 0
+        self.n_recall_class_4 = 0
+        self.n_recall_class_5 = 0
+        self.n_recall_class_6 = 0
 
         self.n_correct_predictions=0
         self.n_recall=0
         self.n_corrects=0
 
-    def rest(self):
+    def reset(self):
         self.n_predictions_class_0 = 0
         self.n_predictions_class_1 = 0
         self.n_predictions_class_2 = 0
@@ -198,37 +198,45 @@ class mean_recall(): # TODO fix
         self.n_classes_6 = 0
 
     def update(self, predicts, ground_truth):
-
-        for i in ground_truth.size[0]:
-            if ground_truth[i].data.item()==[1,0,0,0,0,0,0]:
-                self.n_recall_class_0 += 1
-            if ground_truth[i].data.item()==[0,1,0,0,0,0,0]:
-                self.n_recall_class_1 += 1
-            if ground_truth[i].data.item()==[0,0,1,0,0,0,0]:                
-                self.n_recall_class_2 += 1
-            if ground_truth[i].data.item()==[0,0,0,1,0,0,0]:
-                self.n_recall_class_3 += 1
-            if ground_truth[i].data.item()==[0,0,0,0,1,0,0]:                
-                self.n_recall_class_4 += 1
-            if ground_truth[i].data.item()==[0,0,0,0,0,1,0]:
-                self.n_recall_class_5 += 1
-            if ground_truth[i].data.item()==[0,0,0,0,0,0,1]:
-                self.n_recall_class_6 += 1
         
-        for i in predictions.size[0]:
-            if ground_truth[i].data.item()==[1,0,0,0,0,0,0]:
+        for i in range(ground_truth.size(0)):
+            # print('test ', ground_truth[i].numpy() , '\n')
+            if np.array_equal(ground_truth[i].numpy(),[1,0,0,0,0,0,0]):
+                self.n_recall_class_0 += 1
+                self.n_classes_0 = 1
+            if np.array_equal(ground_truth[i].numpy(),[0,1,0,0,0,0,0]):
+                self.n_recall_class_1 += 1
+                self.n_classes_1 = 1
+            if np.array_equal(ground_truth[i].numpy(),[0,0,1,0,0,0,0]):
+                self.n_recall_class_2 += 1
+                self.n_classes_2 = 1
+            if np.array_equal(ground_truth[i].numpy(),[0,0,0,1,0,0,0]):
+                self.n_recall_class_3 += 1
+                self.n_classes_3 = 1
+            if np.array_equal(ground_truth[i].numpy(),[0,0,0,0,1,0,0]):
+                self.n_recall_class_4 += 1
+                self.n_classes_4 = 1
+            if np.array_equal(ground_truth[i].numpy(),[0,0,0,0,0,1,0]):
+                self.n_recall_class_5 += 1
+                self.n_classes_5 = 1
+            if np.array_equal(ground_truth[i].numpy(),[0,0,0,0,0,0,1]):
+                self.n_recall_class_6 += 1
+                self.n_classes_6 = 1
+        
+        for i in range(predicts.size(0)):
+            if np.array_equal(ground_truth[i].numpy, [1,0,0,0,0,0,0]):
                 self.n_corrects_class_0 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if ground_truth[i].data.item()==[0,1,0,0,0,0,0]:
+            if np.array_equal(ground_truth[i].numpy, [0,1,0,0,0,0,0]):
                 self.n_corrects_class_1 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if ground_truth[i].data.item()==[0,0,1,0,0,0,0]:
+            if np.array_equal(ground_truth[i].numpy, [0,0,1,0,0,0,0]):
                 self.n_corrects_class_2 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if ground_truth[i].data.item()==[0,0,0,1,0,0,0]:
+            if np.array_equal(ground_truth[i].numpy, [0,0,0,1,0,0,0]):
                 self.n_corrects_class_3 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if ground_truth[i].data.item()==[0,0,0,0,1,0,0]:
+            if np.array_equal(ground_truth[i].numpy, [0,0,0,0,1,0,0]):
                 self.n_corrects_class_4 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if ground_truth[i].data.item()==[0,0,0,0,0,1,0]:
+            if np.array_equal(ground_truth[i].numpy, [0,0,0,0,0,1,0]):
                 self.n_corrects_class_5 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if ground_truth[i].data.item()==[0,0,0,0,0,0,1]:
+            if np.array_equal(ground_truth[i].numpy, [0,0,0,0,0,0,1]):
                 self.n_corrects_class_6 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
 
     def get_score(self):
@@ -240,7 +248,7 @@ class mean_recall(): # TODO fix
         recall_class_5 = self.n_corrects_class_5 / self.n_recall_class_5
         recall_class_6 = self.n_corrects_class_6 / self.n_recall_class_6
 
-        return (recall_class_0+recall_class_1+recall_class_2+recall_class_3+recall_class_4+recall_class_5+recall_class_6)/7
+        return (recall_class_0+recall_class_1+recall_class_2+recall_class_3+recall_class_4+recall_class_5+recall_class_6)/(n_classes_0+n_classes_1+n_classes_2+n_classes_3+n_classes_4+n_classes_5+n_classes_6)
 
     def print_score(self):
         score = self.get_score()
@@ -258,8 +266,8 @@ def _run_epoch(epoch, mode):
 
     for i, (x, y) in trange:
         # print('_run_epoch type(x) ', type(x), ' x= ', x, '\n')
-        # print('_run_epoch type(y。) ', type(y), ' y= ', y, '\n')
-        o_labels, batch_loss = _run_iter(x,y)
+        # print('_run_epoch type(y) ', type(y), ' y= ', y, '\n')
+        o_labels, batch_loss = _run_iter(x, y)
         if model =='train':
             opt.zero_grad()
             batch_loss.backward()
