@@ -176,9 +176,18 @@ class mean_recall(): # TODO fix
         self.n_recall_class_5 = 0
         self.n_recall_class_6 = 0
 
-        self.n_correct_predictions=0
-        self.n_recall=0
-        self.n_corrects=0
+        # self.n_correct_predictions=0
+        # self.n_recall=0
+        # self.n_corrects=0
+    
+        # the prediction contain this class or not, 0 or 1
+        self.n_classes_0 = 0
+        self.n_classes_1 = 0
+        self.n_classes_2 = 0
+        self.n_classes_3 = 0
+        self.n_classes_4 = 0
+        self.n_classes_5 = 0
+        self.n_classes_6 = 0
 
     def reset(self):
         self.n_predictions_class_0 = 0
@@ -199,6 +208,7 @@ class mean_recall(): # TODO fix
 
     def update(self, predicts, ground_truth):
         
+        # calculate number of total images of each class and number of classes
         for i in range(ground_truth.size(0)):
             # print('test ', ground_truth[i].numpy() , '\n')
             if np.array_equal(ground_truth[i].numpy(),[1,0,0,0,0,0,0]):
@@ -240,15 +250,29 @@ class mean_recall(): # TODO fix
                 self.n_corrects_class_6 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
 
     def get_score(self):
-        recall_class_0 = self.n_corrects_class_0 / self.n_recall_class_0
-        recall_class_1 = self.n_corrects_class_1 / self.n_recall_class_1
-        recall_class_2 = self.n_corrects_class_2 / self.n_recall_class_2
-        recall_class_3 = self.n_corrects_class_3 / self.n_recall_class_3
-        recall_class_4 = self.n_corrects_class_4 / self.n_recall_class_4
-        recall_class_5 = self.n_corrects_class_5 / self.n_recall_class_5
-        recall_class_6 = self.n_corrects_class_6 / self.n_recall_class_6
+        recall_class_0=0
+        if self.n_recall_class_0!=0:
+            recall_class_0 = self.n_corrects_class_0 / self.n_recall_class_0
+        recall_class_1=0
+        if self.n_recall_class_1!=0:
+            recall_class_1 = self.n_corrects_class_1 / self.n_recall_class_1
+        recall_class_2=0
+        if self.n_recall_class_2!=0:
+            recall_class_2 = self.n_corrects_class_2 / self.n_recall_class_2
+        recall_class_3=0
+        if self.n_recall_class_3!=0:
+            recall_class_3 = self.n_corrects_class_3 / self.n_recall_class_3
+        recall_class_4=0
+        if self.n_recall_class_4!=0:
+            recall_class_4 = self.n_corrects_class_4 / self.n_recall_class_4
+        recall_class_5=0
+        if self.n_recall_class_5!=0:
+            recall_class_5 = self.n_corrects_class_5 / self.n_recall_class_5
+        recall_class_6=0
+        if self.n_recall_class_6!=0:
+            recall_class_6 = self.n_corrects_class_6 / self.n_recall_class_6
 
-        return (recall_class_0+recall_class_1+recall_class_2+recall_class_3+recall_class_4+recall_class_5+recall_class_6)/(n_classes_0+n_classes_1+n_classes_2+n_classes_3+n_classes_4+n_classes_5+n_classes_6)
+        return (recall_class_0 + recall_class_1 + recall_class_2 + recall_class_3 + recall_class_4 + recall_class_5 + recall_class_6) / (self.n_classes_0+self.n_classes_1+self.n_classes_2+self.n_classes_3+self.n_classes_4+self.n_classes_5+self.n_classes_6)
 
     def print_score(self):
         score = self.get_score()
