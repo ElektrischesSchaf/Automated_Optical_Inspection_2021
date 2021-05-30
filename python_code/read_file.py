@@ -140,9 +140,16 @@ class CNN_Simple(nn.Module):
 
         out= torch.softmax(out, dim=1)
 
-        # print('in forward: ', out.size(), '\n')
+        _, max_index = torch.max(out, dim=1)
+        # print(max_index)
 
-        return out
+        # https://stackoverflow.com/questions/55549843/pytorch-doesnt-support-one-hot-vector
+        # TODO move this out after loss func
+        y = torch.zeros(out.size(0), out.size(1))
+        y[range(y.shape[0]), max_index]=1
+        # print(y)
+        
+        return y
 
 
 #  batch_size,  in_channels, out_channels, kernel_heights, stride, padding, 
@@ -150,7 +157,7 @@ model = CNN_Simple(batch_size, 3, 1, [3], 1, 0)
 
 
 opt = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-criteria = torch.nn.BCEWithLogitsLoss() # BCELoss
+criteria = torch.nn.BCELoss() # BCELoss
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -158,6 +165,7 @@ model.to(device)
 history = {'train':[],'valid':[]}
 
 # sigma((number of correct predictions of class)/(number of total images of class)) / (Number of classes)
+# TODO fix 2021-05-30
 class mean_recall(): # TODO fix 
     def __init__(self):
         self.n_corrects_class_0 = 0
@@ -283,6 +291,9 @@ def _run_epoch(epoch, mode):
     model.train(True)
     if mode=='train':
         description = 'train'
+    if mode=='valid':
+        description = 'valid'
+        # TODO dataloader for valid dataset
     trange = tqdm(enumerate( train_dataloader ), total=len(train_dataloader), desc=description )
 
     loss = 0
@@ -300,14 +311,15 @@ def _run_epoch(epoch, mode):
         loss += batch_loss.item()
         MeanRecallScore.update( o_labels.cpu() ,y )
 
-        trange.set_postfix(loss=loss/(i+1), score=MeanRecallScore.print_score() )
+        trange.set_postfix(loss=loss/(i+1), score = MeanRecallScore.print_score() )
 
     if mode=='train':
-        history['train'].append({'mean_recall':MeanRecallScore.get_score(), 'loss':loss/len(trange)})
+        history['train'].append({'mean_recall':MeanRecallScore.print_score(), 'loss':loss/len(trange)})
     
     else:
-        history['valid'].append({'mean_recall':MeanRecallScore.get_score(), 'loss':loss/len(trange)})
-    
+        history['valid'].append({'mean_recall':MeanRecallScore.print_score(), 'loss':loss/len(trange)})
+        print('the mean_score: ', MeanRecallScore.print_score(), '\n')
+
     trange.close()
 
 
@@ -333,6 +345,7 @@ def save(epoch):
 for epoch in range(max_epoch):
     print('Epoch: {}'.format(epoch))
     _run_epoch(epoch, 'train')
+    _run_epoch(epoch, 'valid')
     save(epoch)
 
 
@@ -363,8 +376,12 @@ with torch.no_grad():
         # print('In testing: ', o_labels.size(), ' ')
         for idx, o_label in enumerate(o_labels):
             o_label = o_label.to('cpu')
-            o_label = o_label > threshold
+            
+            # TODO test remove threshold and inspect the result lables
+            
+            o_label = o_label > 0
             o_label = o_label.unsqueeze(0)
+            print(o_label)
 
             # print('In testing: ' ,o_label.size(), '\n')
             # print('In testing: ' ,prediction.size(), '\n')
@@ -379,8 +396,6 @@ prediction = np.array(prediction)
 print('Prediction shape: ', prediction.shape)
 
 prediction = prediction.astype(int)
-print(prediction)
-
 
 '''
 for batch_idx, data in enumerate(train_dataloader):
