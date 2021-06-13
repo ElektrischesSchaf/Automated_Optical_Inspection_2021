@@ -22,7 +22,7 @@ CWD = os.getcwd()
 
 
 learning_rate = 1e-5
-max_epoch = 3
+max_epoch = 10
 batch_size = 64
 batch_size_test = 64
 threshold = 0.5
@@ -140,16 +140,9 @@ class CNN_Simple(nn.Module):
 
         out= torch.softmax(out, dim=1)
 
-        _, max_index = torch.max(out, dim=1)
-        # print(max_index)
-
-        # https://stackoverflow.com/questions/55549843/pytorch-doesnt-support-one-hot-vector
-        # TODO move this out after loss func
-        y = torch.zeros(out.size(0), out.size(1))
-        y[range(y.shape[0]), max_index]=1
-        # print(y)
+        # print(out)
         
-        return y
+        return out
 
 
 #  batch_size,  in_channels, out_channels, kernel_heights, stride, padding, 
@@ -157,7 +150,7 @@ model = CNN_Simple(batch_size, 3, 1, [3], 1, 0)
 
 
 opt = torch.optim.AdamW(model.parameters(), lr=learning_rate)
-criteria = torch.nn.BCELoss() # BCELoss
+criteria = torch.nn.CrossEntropyLoss() # BCELoss
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -303,33 +296,46 @@ def _run_epoch(epoch, mode):
         # print('_run_epoch type(x) ', type(x), ' x= ', x, '\n')
         # print('_run_epoch type(y) ', type(y), ' y= ', y, '\n')
         o_labels, batch_loss = _run_iter(x, y)
-        if model =='train':
+        if mode == 'train':
             opt.zero_grad()
             batch_loss.backward()
             opt.step()
+            # print('in train')
         
         loss += batch_loss.item()
-        MeanRecallScore.update( o_labels.cpu() ,y )
 
-        trange.set_postfix(loss=loss/(i+1), score = MeanRecallScore.print_score() )
+        _, max_index = torch.max(o_labels, dim=1)
+        calcualte_MS = torch.zeros(o_labels.size(0), o_labels.size(1), dtype=torch.float)
+        calcualte_MS[range(calcualte_MS.shape[0]), max_index]=1
+        # print('calcualte_MS ',calcualte_MS.to(torch.int), ' ', 'y: ',y , '\n')
+        MeanRecallScore.update( calcualte_MS.to(torch.int) , y )
+
+        trange.set_postfix( loss=loss/(i+1), score = MeanRecallScore.print_score() )
 
     if mode=='train':
         history['train'].append({'mean_recall':MeanRecallScore.print_score(), 'loss':loss/len(trange)})
-    
+        print('the mean_score: ', MeanRecallScore.print_score(), '; ')
+        print('loss: ', loss, '\n')    
     else:
         history['valid'].append({'mean_recall':MeanRecallScore.print_score(), 'loss':loss/len(trange)})
-        print('the mean_score: ', MeanRecallScore.print_score(), '\n')
-
+        
     trange.close()
 
 
 def _run_iter(x,y):
     input_images = x.to(device)
-    labels = y.to(device).to(dtype=torch.float32)
+    labels = y.to(device).to(dtype=torch.long )
     o_labels = model(input_images).to(device)
-    o_labels = o_labels.to(dtype=torch.float32)
+    o_labels = o_labels.to(dtype=torch.float32 )
+    
+    _, target = torch.max(labels, dim=1 )
+    # print('target: ' , target, '\n')
+    # print('labels', torch.max(labels, 1)[1], '\n')
+    # print('o_labels', o_labels, '\n')
+
     # print('_run_iter size o_labels: ', o_labels.size(), '_run_iter size labels: ', labels.size() , '\n')
-    l_loss = criteria(o_labels, labels)
+    l_loss = criteria( o_labels, target )
+    # print(l_loss)
 
     return o_labels, l_loss
 
@@ -368,7 +374,7 @@ model.eval()
 
 
 trange = tqdm(enumerate(test_dataloader), total=len(test_dataloader), desc='Predict')
-prediction = torch.empty((0, 7), dtype=bool)
+prediction = torch.empty((0, 7), dtype=torch.float) #bool
 
 with torch.no_grad():
     for i, x in trange:
@@ -379,23 +385,34 @@ with torch.no_grad():
             
             # TODO test remove threshold and inspect the result lables
             
-            o_label = o_label > 0
+            # o_label = o_label > 0
             o_label = o_label.unsqueeze(0)
-            print(o_label)
+            # print(o_label)
+
+            _, max_index = torch.max(o_label, dim=1)
+            # print(max_index)
+
+            # https://stackoverflow.com/questions/55549843/pytorch-doesnt-support-one-hot-vector
+            # TODO move this o_label after loss func
+            y = torch.zeros(o_label.size(0), o_label.size(1), dtype=torch.float)
+            y[range(y.shape[0]), max_index]=1
+            
 
             # print('In testing: ' ,o_label.size(), '\n')
             # print('In testing: ' ,prediction.size(), '\n')
             
-            prediction = torch.cat((prediction, o_label), 0)
+            prediction = torch.cat((prediction, y), 0)
 
 
-print('yee: ', prediction.size() )
+print('prediction.size(): ', prediction.size(), '\n' )
 
 # prediction = torch.cat(prediction).detach().numpy().astype(int)
 prediction = np.array(prediction)
-print('Prediction shape: ', prediction.shape)
+print('Prediction shape: ', prediction.shape, '\n')
 
 prediction = prediction.astype(int)
+
+print(prediction[:15,:])
 
 '''
 for batch_idx, data in enumerate(train_dataloader):
