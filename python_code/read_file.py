@@ -22,7 +22,7 @@ CWD = os.getcwd()
 
 
 learning_rate = 1e-5
-max_epoch = 10
+max_epoch = 30
 batch_size = 64
 batch_size_test = 64
 threshold = 0.5
@@ -235,20 +235,28 @@ class mean_recall(): # TODO fix
                 self.n_classes_6 = 1
         
         for i in range(predicts.size(0)):
-            if np.array_equal(ground_truth[i].numpy, [1,0,0,0,0,0,0]):
-                self.n_corrects_class_0 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if np.array_equal(ground_truth[i].numpy, [0,1,0,0,0,0,0]):
-                self.n_corrects_class_1 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if np.array_equal(ground_truth[i].numpy, [0,0,1,0,0,0,0]):
-                self.n_corrects_class_2 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if np.array_equal(ground_truth[i].numpy, [0,0,0,1,0,0,0]):
-                self.n_corrects_class_3 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if np.array_equal(ground_truth[i].numpy, [0,0,0,0,1,0,0]):
-                self.n_corrects_class_4 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if np.array_equal(ground_truth[i].numpy, [0,0,0,0,0,1,0]):
-                self.n_corrects_class_5 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
-            if np.array_equal(ground_truth[i].numpy, [0,0,0,0,0,0,1]):
-                self.n_corrects_class_6 += torch.sum(groundTruth[i].type(torch.bool) * predicts[i]).data.item()
+            # print(ground_truth[i].cpu().numpy())
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([1,0,0,0,0,0,0]) ):
+                self.n_corrects_class_0 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 0')
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([0,1,0,0,0,0,0])):
+                self.n_corrects_class_1 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 1')
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([0,0,1,0,0,0,0])):
+                self.n_corrects_class_2 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 2')
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([0,0,0,1,0,0,0])):
+                self.n_corrects_class_3 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 3')
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([0,0,0,0,1,0,0])):
+                self.n_corrects_class_4 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 4')
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([0,0,0,0,0,1,0])):
+                self.n_corrects_class_5 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 5')
+            if np.array_equal(ground_truth[i].cpu().numpy(), np.array([0,0,0,0,0,0,1])):
+                self.n_corrects_class_6 += torch.sum(ground_truth[i].type(torch.bool) * predicts[i]).data.item()
+                # print('in 6')
 
     def get_score(self):
         recall_class_0=0
@@ -280,9 +288,9 @@ class mean_recall(): # TODO fix
         return '{:.5f}'.format(score)
 
 
-def _run_epoch(epoch, mode):
-    model.train(True)
+def _run_epoch(epoch, mode):    
     if mode=='train':
+        model.train(True)
         description = 'train'
     if mode=='valid':
         description = 'valid'
@@ -307,7 +315,7 @@ def _run_epoch(epoch, mode):
         _, max_index = torch.max(o_labels, dim=1)
         calcualte_MS = torch.zeros(o_labels.size(0), o_labels.size(1), dtype=torch.float)
         calcualte_MS[range(calcualte_MS.shape[0]), max_index]=1
-        # print('calcualte_MS ',calcualte_MS.to(torch.int), ' ', 'y: ',y , '\n')
+        # print('calcualte_MS ',calcualte_MS.to(torch.int), '\n')
         MeanRecallScore.update( calcualte_MS.to(torch.int) , y )
 
         trange.set_postfix( loss=loss/(i+1), score = MeanRecallScore.print_score() )
